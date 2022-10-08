@@ -1,0 +1,44 @@
+html,
+body {
+  padding: 0;
+  margin: 0;
+  font-family: monospace;
+}
+
+* {
+  font-family: inherit;
+}
+
+p {
+  padding: 0;
+  margin: 0;
+}
+
+.input-and-label {
+  display: grid;
+  row-gap: 12px;
+}
+
+h1, h2, h3 {
+  padding: 0;
+  margin: 0;
+}
+
+button {
+  padding: 8px;
+  animation: mymove 0.5s infinite;
+  color: black;
+  cursor: pointer;
+  border: unset;
+
+  display: block;
+}
+
+
+@keyframes mymove {
+  20% {background-color: red;}
+  40% {background-color: orange;}
+  60% {background-color: yellow;}
+  80% {background-color: green;}
+  100% {background-color: violet;}
+}
