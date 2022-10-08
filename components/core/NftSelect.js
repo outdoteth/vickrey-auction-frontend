@@ -34,6 +34,7 @@ export const NftSelect = ({ tokenAddress, value, onChange }) => {
               .slice(0, 20)
               .map(({ image, tokenId }) => (
                 <ImgContainer
+                  key={tokenId}
                   src={image}
                   selected={value == tokenId}
                   onClick={() => onChange(tokenId)}

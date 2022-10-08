@@ -231,8 +231,7 @@ export default function Auction({ auction }) {
           </div>
         </div>
 
-        {owner !== address &&
-        revealFinished && <button>Withdraw Highest Bid</button> ? (
+        {owner !== address && revealFinished ? (
           <>
             <div className="input-and-label">
               <label htmlFor="bid-amount">Hidden bid amount (ETH)</label>
@@ -244,12 +243,15 @@ export default function Auction({ auction }) {
                 value={bidAmount}
               />
             </div>
+
             <button onClick={() => placeBid()}>Place Hidden Bid</button>
           </>
         ) : (
-          <button onClick={() => withdrawWinningBid()}>
-            Withdraw Winning bid
-          </button>
+          revealFinished && (
+            <button onClick={() => withdrawWinningBid()}>
+              Withdraw Winning bid
+            </button>
+          )
         )}
 
         <h2>Your bids</h2>
@@ -259,6 +261,7 @@ export default function Auction({ auction }) {
             ? "(No bids here)"
             : bids.map(({ bidAmount, salt, create2Address }) => (
                 <BidItem
+                  key={salt}
                   bidAmount={bidAmount}
                   salt={salt}
                   auction={auction}
@@ -291,8 +294,8 @@ export async function getServerSideProps(context) {
   const auction = {
     id,
     creationTimestamp: 100,
-    revealEndTimestamp: 600,
-    endTimestamp: 500,
+    revealEndTimestamp: 166519890,
+    endTimestamp: 1665198890,
     duration: 100,
     tokenId: 1,
     owner: "0xAc314DfCe6a883195F6516A34F978C8C2726AF48",

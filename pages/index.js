@@ -54,13 +54,13 @@ export default function Home() {
     const fetchAuctions = async () => {
       setLoading(true);
 
-      // const auctionFactory = new Contract(
-      //   process.env.NEXT_PUBLIC_AUCTION_ADDRESS,
-      //   auctionFactoryAbi,
-      //   signer
-      // );
+      const auctionFactory = new Contract(
+        process.env.NEXT_PUBLIC_AUCTION_ADDRESS,
+        auctionFactoryAbi,
+        signer
+      );
 
-      // const creations = await auctionFactory.queryFilter("CreateAuction");
+      const creations = await auctionFactory.queryFilter("AuctionCreated");
       // console.log("creations", creations);
 
       const auctionData = [
@@ -118,7 +118,7 @@ export default function Home() {
           ? "Loading..."
           : auctions.map(
               ({ id, creationTimestamp, endTimestamp, duration, image }) => (
-                <Link href={"/auction/" + id}>
+                <Link href={"/auction/" + id} key={id}>
                   <ListItem key={id}>
                     <img src={image} />
 
