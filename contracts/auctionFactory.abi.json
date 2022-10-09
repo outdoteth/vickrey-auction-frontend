@@ -6,12 +6,12 @@
     },
     {
       "inputs": [],
-      "name": "DirectAuctionCreate",
+      "name": "InvalidERC721ReceiveData",
       "type": "error"
     },
     {
       "inputs": [],
-      "name": "InvalidERC721ReceiveData",
+      "name": "NotCallable",
       "type": "error"
     },
     {
@@ -56,34 +56,6 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "_beneficiary",
-          "type": "address"
-        },
-        {
-          "internalType": "address",
-          "name": "_collection",
-          "type": "address"
-        },
-        {
-          "internalType": "uint256",
-          "name": "_tokenId",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "_revealStartBlock",
-          "type": "uint256"
-        }
-      ],
-      "name": "createAuction",
-      "outputs": [],
-      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
@@ -157,4 +129,4 @@
       "stateMutability": "nonpayable",
       "type": "function"
     }
-]
+  ]

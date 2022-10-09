@@ -53,15 +53,15 @@ export default function Home() {
   useEffect(() => {
     const fetchAuctions = async () => {
       setLoading(true);
+      const auctionFactory = new Contract(process.env.NEXT_PUBLIC_AUCTION_ADDRESS, auctionFactoryAbi, signer);
 
-      const auctionFactory = new Contract(
-        process.env.NEXT_PUBLIC_AUCTION_ADDRESS,
-        auctionFactoryAbi,
-        signer
-      );
-
-      const creations = await auctionFactory.queryFilter("AuctionCreated");
-      console.log("creations", creations);
+      try {
+        console.log(auctionFactory);
+        const creations = await auctionFactory.queryFilter("AuctionCreated");
+        console.log("creations", creations);
+      } catch (e) {
+        console.log("Could not get AuctionCreated: ", e);
+      }
 
       const auctionData = creations.map(({ args, ...v }) => ({
         id: args.auction,
@@ -111,6 +111,7 @@ export default function Home() {
 
         {loading
           ? "Loading..."
+<<<<<<< Updated upstream
           : auctions
               .slice()
               .reverse()
@@ -133,6 +134,22 @@ export default function Home() {
                   </Link>
                 )
               )}
+=======
+          : auctions.map(({ id, creationTimestamp, endTimestamp, duration, image }) => (
+              <Link href={"/auction/" + id} key={id}>
+                <ListItem key={id}>
+                  <img src={image} />
+
+                  <div>
+                    <p>Auction duration: {prettyMilliseconds(duration * 1000)}</p>
+                    <p>Auction ends in: {prettyMilliseconds(Math.max(endTimestamp * 1000 - new Date().getTime(), 0))}</p>
+                    <p>Creation: {new Date(creationTimestamp).toISOString()}</p>
+                    <p>End: {new Date(endTimestamp).toISOString()}</p>
+                  </div>
+                </ListItem>
+              </Link>
+            ))}
+>>>>>>> Stashed changes
       </Container>
     </div>
   );
