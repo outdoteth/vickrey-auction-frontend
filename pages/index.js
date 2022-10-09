@@ -54,36 +54,35 @@ export default function Home() {
     const fetchAuctions = async () => {
       setLoading(true);
       const auctionFactory = new Contract(process.env.NEXT_PUBLIC_AUCTION_ADDRESS, auctionFactoryAbi, signer);
-      let creations;
+      let creations, auctionData;
       try {
         console.log(auctionFactory);
         creations = await auctionFactory.queryFilter("AuctionCreated");
         console.log("creations", creations);
+
+        auctionData = creations.map(({ args, ...v }) => ({
+          id: args.auction,
+          creationTimestamp: v.blockNumber,
+          endTimestamp: args.revealStartBlock.toNumber(),
+          duration: args.revealStartBlock.toNumber() - v.blockNumber,
+          tokenId: args.tokenId.toString(),
+          tokenAddress: args.collection,
+        }));
       } catch (e) {
-        console.log("Could not get AuctionCreated: ", e);
+        console.log("Could not get AuctionCreated, defaulting to test data: ", e);
+        auctionData = [
+          {
+            id: "123",
+            creationTimestamp: 100,
+            endTimestamp: 500,
+            duration: 100,
+            tokenId: 1,
+            tokenAddress: "0x3f161961e90eb149f392be1e831bb7060c90f284",
+          },
+        ];
       }
 
-      const auctionData = creations.map(({ args, ...v }) => ({
-        id: args.auction,
-        creationTimestamp: v.blockNumber,
-        endTimestamp: args.revealStartBlock.toNumber(),
-        duration: args.revealStartBlock.toNumber() - v.blockNumber,
-        tokenId: args.tokenId.toString(),
-        tokenAddress: args.collection,
-      }));
-
       console.log(auctionData);
-
-      // const auctionData = [
-      //   {
-      //     id: "123",
-      //     creationTimestamp: 100,
-      //     endTimestamp: 500,
-      //     duration: 100,
-      //     tokenId: 1,
-      //     tokenAddress: "0x3f161961e90eb149f392be1e831bb7060c90f284",
-      //   },
-      // ];
 
       const auctions = await Promise.all(
         auctionData.map(async (v) => ({

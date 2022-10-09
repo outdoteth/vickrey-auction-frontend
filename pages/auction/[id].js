@@ -11,6 +11,7 @@ import { Input } from "../../components/core/Input";
 import auctionFactoryAbi from "../../contracts/auctionFactory.abi.json";
 import auctionAbi from "../../contracts/auction.abi.json";
 import { getNftImage } from "../../utils/getNftImage";
+import { getAccountProofEthers } from "../mpt_utils";
 
 const Container = styled.div`
   display: grid;
@@ -46,15 +47,7 @@ const BidItemContainer = styled.div`
 `;
 
 const BidItem = ({ bidAmount, salt, create2Address, auction }) => {
-  const {
-    id,
-    creationTimestamp,
-    endTimestamp,
-    duration,
-    image,
-    revealEndTimestamp,
-    owner,
-  } = auction;
+  const { id, creationTimestamp, endTimestamp, duration, image, revealEndTimestamp, owner } = auction;
 
   const { data: signer } = useSigner();
   const { address } = useAccount();
@@ -66,38 +59,33 @@ const BidItem = ({ bidAmount, salt, create2Address, auction }) => {
 
   useEffect(() => {
     const updateWinningBid = async () => {
-      const auctionFactory = new Contract(
-        process.env.NEXT_PUBLIC_AUCTION_ADDRESS,
-        auctionFactoryAbi,
-        signer
-      );
-
-      const winningBid = await auctionFactory.winningBid(create2Address);
+      const auction = new Contract(id, auctionAbi, signer);
+      const winningBid = await auction.topBid;
       setWinningBid(winningBid);
     };
 
     updateWinningBid();
   }, []);
 
-  const reveal = async () => {
+  const reveal = async (endTimestamp) => {
     const auction = new Contract(id, auctionAbi, signer);
-
+    const accountProof = await getAccountProofEthers(address, endTimestamp);
+    console.log("accproooof", accountProof);
     // await auction.startReveal();
 
-    console.log(
-      address,
-      parseEther(bidAmount),
-      salt,
-      parseEther(bidAmount),
-      []
-    );
+    console.log(address, parseEther(bidAmount), salt, parseEther(bidAmount), []);
 
     const tx = await auction.reveal(
       address,
       parseEther(bidAmount),
       salt,
       parseEther(bidAmount),
-      []
+      accountProof.header,
+      accountProof.fullAccountProof,
+      accountProof.state1,
+      accountProof.state2,
+      accountProof.state3,
+      accountProof.accountAddress
     );
 
     await tx.wait();
@@ -106,26 +94,18 @@ const BidItem = ({ bidAmount, salt, create2Address, auction }) => {
   };
 
   const withdraw = async () => {
-    const auctionFactory = new Contract(
-      process.env.NEXT_PUBLIC_AUCTION_ADDRESS,
-      auctionFactoryAbi,
-      signer
-    );
+    const auction = new Contract(id, auctionAbi, signer);
 
-    const tx = await auctionFactory.withdraw();
+    const tx = await auction.pull(address);
     await tx.wait();
 
     alert("Withdrew bid");
   };
 
   const claim = async () => {
-    const auctionFactory = new Contract(
-      process.env.NEXT_PUBLIC_AUCTION_ADDRESS,
-      auctionFactoryAbi,
-      signer
-    );
+    const auction = new Contract(id, auctionAbi, signer);
 
-    const tx = await auctionFactory.claim();
+    const tx = await auction.claimWin(tokenAddress, tokenId);
     await tx.wait();
 
     alert("Claimed NFT");
@@ -134,25 +114,15 @@ const BidItem = ({ bidAmount, salt, create2Address, auction }) => {
   return (
     <BidItemContainer>
       <div>{bidAmount} ETH</div>
-      {winningBid && (
-        <button onClick={() => claim()}>Claim NFT (Winning Bid)</button>
-      )}
-      {biddingFinished && <button onClick={() => reveal()}>Reveal</button>}
+      {winningBid && <button onClick={() => claim()}>Claim NFT (Winning Bid)</button>}
+      {biddingFinished && <button onClick={() => reveal(endTimestamp)}>Reveal</button>}
       {revealFinished && <button onClick={() => withdraw()}>Withdraw</button>}
     </BidItemContainer>
   );
 };
 
 export default function Auction({ auction }) {
-  const {
-    id,
-    creationTimestamp,
-    endTimestamp,
-    duration,
-    image,
-    revealEndTimestamp,
-    owner,
-  } = auction;
+  const { id, creationTimestamp, endTimestamp, duration, image, revealEndTimestamp, owner } = auction;
 
   const { address } = useAccount();
   const { data: signer } = useSigner();
@@ -180,8 +150,7 @@ export default function Auction({ auction }) {
 
     const subsalt = keccak256(Date.now());
     console.log(subsalt);
-    const { salt, depositAddr: create2Address } =
-      await auction.getBidDepositAddr(address, parseEther(bidAmount), subsalt);
+    const { salt, depositAddr: create2Address } = await auction.getBidDepositAddr(address, parseEther(bidAmount), subsalt);
 
     console.log("create2 Address", create2Address);
 
@@ -200,11 +169,7 @@ export default function Auction({ auction }) {
   };
 
   const withdrawWinningBid = async () => {
-    const auctionFactory = new Contract(
-      process.env.NEXT_PUBLIC_AUCTION_ADDRESS,
-      auctionFactoryAbi,
-      signer
-    );
+    const auctionFactory = new Contract(process.env.NEXT_PUBLIC_AUCTION_ADDRESS, auctionFactoryAbi, signer);
 
     const tx = await auctionFactory.withdrawWinningBid();
     await tx.wait();
@@ -228,9 +193,7 @@ export default function Auction({ auction }) {
             <h2>Metadata</h2>
 
             <p>Auction duration: {duration} blocks</p>
-            <p>
-              Auction ends in: {Math.max(endTimestamp - blockNumber, 0)} blocks
-            </p>
+            <p>Auction ends in: {Math.max(endTimestamp - blockNumber, 0)} blocks</p>
             <p>Creation: block #{creationTimestamp}</p>
             <p>End: block #{endTimestamp}</p>
           </div>
@@ -240,24 +203,13 @@ export default function Auction({ auction }) {
           <>
             <div className="input-and-label">
               <label htmlFor="bid-amount">Hidden bid amount (ETH)</label>
-              <Input
-                id="bid-amount"
-                placeholder="Enter ETH amount..."
-                type="number"
-                onChange={(e) => setBidAmount(e.target.value)}
-                value={bidAmount}
-              />
+              <Input id="bid-amount" placeholder="Enter ETH amount..." type="number" onChange={(e) => setBidAmount(e.target.value)} value={bidAmount} />
             </div>
 
             <button onClick={() => placeBid()}>Place Hidden Bid</button>
           </>
         ) : (
-          owner === address &&
-          revealFinished && (
-            <button onClick={() => withdrawWinningBid()}>
-              Withdraw Winning bid
-            </button>
-          )
+          owner === address && revealFinished && <button onClick={() => withdrawWinningBid()}>Withdraw Winning bid</button>
         )}
 
         <h2>Your bids</h2>
@@ -265,15 +217,7 @@ export default function Auction({ auction }) {
         <div>
           {bids.length === 0
             ? "(No bids here)"
-            : bids.map(({ bidAmount, salt, create2Address }) => (
-                <BidItem
-                  key={salt}
-                  bidAmount={bidAmount}
-                  salt={salt}
-                  auction={auction}
-                  create2Address={create2Address}
-                />
-              ))}
+            : bids.map(({ bidAmount, salt, create2Address }) => <BidItem key={salt} bidAmount={bidAmount} salt={salt} auction={auction} create2Address={create2Address} />)}
         </div>
       </Container>
     </div>
@@ -283,20 +227,11 @@ export default function Auction({ auction }) {
 export async function getServerSideProps(context) {
   const { id } = context.query;
 
-  const provider = new AlchemyProvider(
-    "goerli",
-    process.env.NEXT_PUBLIC_ALCHEMY_ID
-  );
+  const provider = new AlchemyProvider("goerli", process.env.NEXT_PUBLIC_ALCHEMY_ID);
 
-  const auctionFactory = new Contract(
-    process.env.NEXT_PUBLIC_AUCTION_ADDRESS,
-    auctionFactoryAbi,
-    provider
-  );
+  const auctionFactory = new Contract(process.env.NEXT_PUBLIC_AUCTION_ADDRESS, auctionFactoryAbi, provider);
 
-  const creations = await auctionFactory.queryFilter(
-    auctionFactory.filters.AuctionCreated(id)
-  );
+  const creations = await auctionFactory.queryFilter(auctionFactory.filters.AuctionCreated(id));
 
   const rawAuction = creations[0];
   console.log(creations);
@@ -311,8 +246,7 @@ export async function getServerSideProps(context) {
     creationTimestamp: rawAuction.blockNumber,
     revealEndTimestamp: rawAuction.args.revealStartBlock.toNumber() + 7200,
     endTimestamp: rawAuction.args.revealStartBlock.toNumber(),
-    duration:
-      rawAuction.args.revealStartBlock.toNumber() - rawAuction.blockNumber,
+    duration: rawAuction.args.revealStartBlock.toNumber() - rawAuction.blockNumber,
     tokenId: rawAuction.args.tokenId.toString(),
     owner: tx.from,
     tokenAddress: rawAuction.args.collection,
@@ -324,11 +258,7 @@ export async function getServerSideProps(context) {
     maxRetries: 10,
   });
 
-  auction.image = await getNftImage(
-    alchemy,
-    auction.tokenAddress,
-    auction.tokenId
-  );
+  auction.image = await getNftImage(alchemy, auction.tokenAddress, auction.tokenId);
 
   return {
     props: { auction },
