@@ -12,7 +12,7 @@ const Container = styled.div`
 `;
 
 const ImgContainer = styled.img`
-  height: 64px;
+  width: 57px;
   margin: 1px;
   padding: 2px;
   cursor: pointer;

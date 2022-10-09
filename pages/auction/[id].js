@@ -6,9 +6,10 @@ import Head from "next/head";
 import prettyMilliseconds from "pretty-ms";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
-import { useAccount, useSigner, useSignTypedData } from "wagmi";
+import { useAccount, useBlockNumber, useSigner, useSignTypedData } from "wagmi";
 import { Input } from "../../components/core/Input";
 import auctionFactoryAbi from "../../contracts/auctionFactory.abi.json";
+import auctionAbi from "../../contracts/auction.abi.json";
 import { getNftImage } from "../../utils/getNftImage";
 
 const Container = styled.div`
@@ -56,10 +57,12 @@ const BidItem = ({ bidAmount, salt, create2Address, auction }) => {
   } = auction;
 
   const { data: signer } = useSigner();
-  const [winningBid, setWinningBid] = useState(true);
+  const { address } = useAccount();
+  const [winningBid, setWinningBid] = useState(false);
+  const { data: blockNumber } = useBlockNumber();
 
-  const biddingFinished = new Date().getTime() > endTimestamp * 1000;
-  const revealFinished = new Date().getTime() > revealEndTimestamp * 1000;
+  const biddingFinished = blockNumber > endTimestamp;
+  const revealFinished = blockNumber > revealEndTimestamp;
 
   useEffect(() => {
     const updateWinningBid = async () => {
@@ -77,18 +80,24 @@ const BidItem = ({ bidAmount, salt, create2Address, auction }) => {
   }, []);
 
   const reveal = async () => {
-    const auctionFactory = new Contract(
-      process.env.NEXT_PUBLIC_AUCTION_ADDRESS,
-      auctionFactoryAbi,
-      signer
+    const auction = new Contract(id, auctionAbi, signer);
+
+    // await auction.startReveal();
+
+    console.log(
+      address,
+      parseEther(bidAmount),
+      salt,
+      parseEther(bidAmount),
+      []
     );
 
-    const tx = await auctionFactory.reveal(
+    const tx = await auction.reveal(
       address,
-      bidAmount,
+      parseEther(bidAmount),
       salt,
-      balAtSnapshot,
-      proof
+      parseEther(bidAmount),
+      []
     );
 
     await tx.wait();
@@ -150,10 +159,12 @@ export default function Auction({ auction }) {
   const [bidAmount, setBidAmount] = useState();
   const [bids, setBids] = useState([]);
 
-  console.log("reveal", revealEndTimestamp);
+  const { data: blockNumber } = useBlockNumber();
 
-  const biddingFinished = new Date().getTime() > endTimestamp * 1000;
-  const revealFinished = new Date().getTime() > revealEndTimestamp * 1000;
+  const biddingFinished = blockNumber > endTimestamp;
+  const revealFinished = blockNumber > revealEndTimestamp;
+
+  console.log(biddingFinished, revealFinished);
 
   useEffect(() => {
     setBids(JSON.parse(localStorage.getItem(id) || "[]"));
@@ -164,16 +175,13 @@ export default function Auction({ auction }) {
     // save the salt and bid in localstorage
     // send the transaction
     const random = Math.floor(Math.random() * 100000000000);
-    const data = defaultAbiCoder.encode(
-      ["address", "uint256", "uint256"],
-      [address, parseEther(bidAmount), random]
-    );
 
-    const salt = keccak256(data);
-    const from = process.env.NEXT_PUBLIC_AUCTION_ADDRESS;
-    const initCode = process.env.NEXT_PUBLIC_AUCTION_INITCODE;
-    const initCodeHash = keccak256(initCode);
-    const create2Address = utils.getCreate2Address(from, salt, initCodeHash);
+    const auction = new Contract(id, auctionAbi, signer);
+
+    const subsalt = keccak256(Date.now());
+    console.log(subsalt);
+    const { salt, depositAddr: create2Address } =
+      await auction.getBidDepositAddr(address, parseEther(bidAmount), subsalt);
 
     console.log("create2 Address", create2Address);
 
@@ -182,7 +190,7 @@ export default function Auction({ auction }) {
       value: parseEther(bidAmount),
     });
 
-    const newBids = bids.concat({ salt, bidAmount, create2Address });
+    const newBids = bids.concat({ salt: subsalt, bidAmount, create2Address });
     localStorage.setItem(id, JSON.stringify(newBids));
     setBids(newBids);
 
@@ -219,19 +227,16 @@ export default function Auction({ auction }) {
           <div className="metadata">
             <h2>Metadata</h2>
 
-            <p>Auction duration: {prettyMilliseconds(duration * 1000)}</p>
+            <p>Auction duration: {duration} blocks</p>
             <p>
-              Auction ends in:{" "}
-              {prettyMilliseconds(
-                Math.max(endTimestamp * 1000 - new Date().getTime(), 0)
-              )}
+              Auction ends in: {Math.max(endTimestamp - blockNumber, 0)} blocks
             </p>
-            <p>Creation: {new Date(creationTimestamp).toISOString()}</p>
-            <p>End: {new Date(endTimestamp).toISOString()}</p>
+            <p>Creation: block #{creationTimestamp}</p>
+            <p>End: block #{endTimestamp}</p>
           </div>
         </div>
 
-        {owner !== address && revealFinished ? (
+        {owner !== address && !biddingFinished ? (
           <>
             <div className="input-and-label">
               <label htmlFor="bid-amount">Hidden bid amount (ETH)</label>
@@ -247,6 +252,7 @@ export default function Auction({ auction }) {
             <button onClick={() => placeBid()}>Place Hidden Bid</button>
           </>
         ) : (
+          owner === address &&
           revealFinished && (
             <button onClick={() => withdrawWinningBid()}>
               Withdraw Winning bid
@@ -288,18 +294,28 @@ export async function getServerSideProps(context) {
     provider
   );
 
+  const creations = await auctionFactory.queryFilter(
+    auctionFactory.filters.AuctionCreated(id)
+  );
+
+  const rawAuction = creations[0];
+  console.log(creations);
+
   // todo: add fetching here
   //   const auction = auctionFactory.auctions(id);
 
+  const tx = await provider.getTransaction(rawAuction.transactionHash);
+
   const auction = {
     id,
-    creationTimestamp: 100,
-    revealEndTimestamp: 166519890,
-    endTimestamp: 1665198890,
-    duration: 100,
-    tokenId: 1,
-    owner: "0xAc314DfCe6a883195F6516A34F978C8C2726AF48",
-    tokenAddress: "0x3f161961e90eb149f392be1e831bb7060c90f284",
+    creationTimestamp: rawAuction.blockNumber,
+    revealEndTimestamp: rawAuction.args.revealStartBlock.toNumber() + 7200,
+    endTimestamp: rawAuction.args.revealStartBlock.toNumber(),
+    duration:
+      rawAuction.args.revealStartBlock.toNumber() - rawAuction.blockNumber,
+    tokenId: rawAuction.args.tokenId.toString(),
+    owner: tx.from,
+    tokenAddress: rawAuction.args.collection,
   };
 
   const alchemy = new Alchemy({

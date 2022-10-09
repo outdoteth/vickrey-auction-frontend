@@ -99,7 +99,7 @@
           "type": "uint256"
         }
       ],
-      "name": "internalCreateAuction",
+      "name": "innerCreateAuction",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"

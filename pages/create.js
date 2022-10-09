@@ -7,6 +7,7 @@ import { Input } from "../components/core/Input";
 import { NftSelect } from "../components/core/NftSelect";
 import * as nftCollections from "../ethereum/nftCollections.json";
 import auctionFactoryAbi from "../contracts/auctionFactory.abi.json";
+import { defaultAbiCoder } from "ethers/lib/utils";
 
 const Container = styled.div`
   display: grid;
@@ -62,12 +63,16 @@ export default function Create() {
       auctionFactoryAbi,
       signer
     );
+    const token = new Contract(tokenAddress, erc721ABI, signer);
 
-    const tx = await auctionFactory.createAuction(
+    const tx = await token["safeTransferFrom(address,address,uint256,bytes)"](
       address,
-      tokenAddress,
+      process.env.NEXT_PUBLIC_AUCTION_ADDRESS,
       selectedNft,
-      blockNumber + Math.floor(duration / 13)
+      auctionFactory.interface.encodeFunctionData("innerCreateAuction", [
+        address,
+        blockNumber + Math.floor((duration * 60 * 60) / 12),
+      ])
     );
 
     await tx.wait();
