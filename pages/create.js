@@ -22,7 +22,9 @@ export default function Create() {
   const { data: signer } = useSigner();
   const { address } = useAccount();
   const [selectedNft, setSelectedNft] = useState();
-  const [tokenAddress, setTokenAddress] = useState(nftCollections.tokens[0].address);
+  const [tokenAddress, setTokenAddress] = useState(
+    nftCollections.tokens[0].address
+  );
   const { data: blockNumber } = useBlockNumber({ watch: true });
   const [approved, setApproved] = useState();
   const [duration, setDuration] = useState();
@@ -31,7 +33,10 @@ export default function Create() {
     const getApproved = async () => {
       const token = new Contract(tokenAddress, erc721ABI, signer);
 
-      const isApprovedForAll = await token.isApprovedForAll(address, process.env.NEXT_PUBLIC_AUCTION_ADDRESS);
+      const isApprovedForAll = await token.isApprovedForAll(
+        address,
+        process.env.NEXT_PUBLIC_AUCTION_ADDRESS
+      );
 
       setApproved(isApprovedForAll);
     };
@@ -42,7 +47,10 @@ export default function Create() {
   const approve = async () => {
     const token = new Contract(tokenAddress, erc721ABI, signer);
 
-    const tx = await token.setApprovalForAll(process.env.NEXT_PUBLIC_AUCTION_ADDRESS, true);
+    const tx = await token.setApprovalForAll(
+      process.env.NEXT_PUBLIC_AUCTION_ADDRESS,
+      true
+    );
 
     await tx.wait();
 
@@ -50,14 +58,21 @@ export default function Create() {
   };
 
   const create = async () => {
-    const auctionFactory = new Contract(process.env.NEXT_PUBLIC_AUCTION_ADDRESS, auctionFactoryAbi, signer);
+    const auctionFactory = new Contract(
+      process.env.NEXT_PUBLIC_AUCTION_ADDRESS,
+      auctionFactoryAbi,
+      signer
+    );
     const token = new Contract(tokenAddress, erc721ABI, signer);
 
     const tx = await token["safeTransferFrom(address,address,uint256,bytes)"](
       address,
       process.env.NEXT_PUBLIC_AUCTION_ADDRESS,
       selectedNft,
-      auctionFactory.interface.encodeFunctionData("innerCreateAuction", [address, blockNumber + Math.floor((duration * 1 * 60) / 12)])
+      auctionFactory.interface.encodeFunctionData("innerCreateAuction", [
+        address,
+        blockNumber + Math.floor((duration * 60 * 60) / 12),
+      ])
     );
 
     await tx.wait();
@@ -74,14 +89,28 @@ export default function Create() {
       <Container>
         <h1>Vickrey Auction</h1>
 
-        <NftSelect value={selectedNft} onChange={setSelectedNft} tokenAddress={tokenAddress} />
+        <NftSelect
+          value={selectedNft}
+          onChange={setSelectedNft}
+          tokenAddress={tokenAddress}
+        />
 
         <div className="input-and-label">
           <label htmlFor="auction-duration">Auction duration (hours)</label>
-          <Input id="auction-duration" placeholder="Enter hours..." type="number" value={duration} onChange={(e) => setDuration(e.target.value)} />
+          <Input
+            id="auction-duration"
+            placeholder="Enter hours..."
+            type="number"
+            value={duration}
+            onChange={(e) => setDuration(e.target.value)}
+          />
         </div>
 
-        {approved ? <button onClick={() => create()}>Create Auction</button> : <button onClick={() => approve()}>Approve</button>}
+        {approved ? (
+          <button onClick={() => create()}>Create Auction</button>
+        ) : (
+          <button onClick={() => approve()}>Approve</button>
+        )}
       </Container>
     </div>
   );
