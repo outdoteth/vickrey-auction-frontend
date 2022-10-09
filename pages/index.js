@@ -111,29 +111,24 @@ export default function Home() {
 
         {loading
           ? "Loading..."
-<<<<<<< Updated upstream
           : auctions
               .slice()
               .reverse()
-              .map(
-                ({ id, creationTimestamp, endTimestamp, duration, image }) => (
-                  <Link href={"/auction/" + id} key={id}>
-                    <ListItem key={id}>
-                      <img src={image} />
+              .map(({ id, creationTimestamp, endTimestamp, duration, image }) => (
+                <Link href={"/auction/" + id} key={id}>
+                  <ListItem key={id}>
+                    <img src={image} />
 
-                      <div>
-                        <p>Auction duration: {duration} blocks</p>
-                        <p>
-                          Auction ends in:{" "}
-                          {Math.max(endTimestamp - blockNumber, 0)} blocks
-                        </p>
-                        <p>Creation: block #{creationTimestamp}</p>
-                        <p>End: block #{endTimestamp}</p>
-                      </div>
-                    </ListItem>
-                  </Link>
-                )
-              )}
+                    <div>
+                      <p>Auction duration: {duration} blocks</p>
+                      <p>Auction ends in: {Math.max(endTimestamp - blockNumber, 0)} blocks</p>
+                      <p>Creation: block #{creationTimestamp}</p>
+                      <p>End: block #{endTimestamp}</p>
+                    </div>
+                  </ListItem>
+                </Link>
+              ))}
+        {/* <<<<<<< HEAD
 =======
           : auctions.map(({ id, creationTimestamp, endTimestamp, duration, image }) => (
               <Link href={"/auction/" + id} key={id}>
@@ -150,6 +145,8 @@ export default function Home() {
               </Link>
             ))}
 >>>>>>> Stashed changes
+=======
+>>>>>>> 23fc527cdeb805c2026a438cdc16a45895e78025 */}
       </Container>
     </div>
   );
