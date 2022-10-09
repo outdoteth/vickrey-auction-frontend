@@ -264,9 +264,10 @@ function fullToMin(header) {
 }
 
 async function getAccountProofEthers(accountAddress, blockNumber) {
-  const alchemyGoerliKey = process.env.ALCHEMY_GOERLI_KEY || process.env.NEXT_PUBLIC_ALCHEMY_ID;
-  const alchemyGoerliRpc = "https://eth-goerli.g.alchemy.com/v2/" + alchemyGoerliKey;
-  const goerliProverAddress = "0x43d31189eaBFb20E0494Cf9f4994DEE0644307dB";
+  const alchemyGoerliKey = process.env.NEXT_PUBLIC_ALCHEMY_ID;
+  const alchemyGoerliRpc =
+    process.env.NEXT_PUBLIC_CHAIN_ID == 5 ? "https://eth-goerli.g.alchemy.com/v2/" + alchemyGoerliKey : "https://opt-goerli.g.alchemy.com/v2/" + alchemyGoerliKey;
+  const goerliProverAddress = process.env.NEXT_PUBLIC_AUCTION_ADDRESS;
 
   const rpc = alchemyGoerliRpc;
   const provider = new ethers.providers.JsonRpcProvider(rpc);
