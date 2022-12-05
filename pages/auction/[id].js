@@ -11,7 +11,7 @@ import { Input } from "../../components/core/Input";
 import auctionFactoryAbi from "../../contracts/auctionFactory.abi.json";
 import auctionAbi from "../../contracts/auction.abi.json";
 import { getNftImage } from "../../utils/getNftImage";
-import { getAccountProofEthers } from "../mpt_utils";
+import { getAccountProofEthers } from "../../utils/mpt_utils";
 
 const Container = styled.div`
   display: grid;
