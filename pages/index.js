@@ -53,37 +53,36 @@ export default function Home() {
   useEffect(() => {
     const fetchAuctions = async () => {
       setLoading(true);
+      const auctionFactory = new Contract(process.env.NEXT_PUBLIC_AUCTION_ADDRESS, auctionFactoryAbi, signer);
+      let creations, auctionData;
+      try {
+        console.log(auctionFactory);
+        creations = await auctionFactory.queryFilter("AuctionCreated");
+        console.log("creations", creations);
 
-      const auctionFactory = new Contract(
-        process.env.NEXT_PUBLIC_AUCTION_ADDRESS,
-        auctionFactoryAbi,
-        signer
-      );
-
-      const creations = await auctionFactory.queryFilter("AuctionCreated");
-      console.log("creations", creations);
-
-      const auctionData = creations.map(({ args, ...v }) => ({
-        id: args.auction,
-        creationTimestamp: v.blockNumber,
-        endTimestamp: args.revealStartBlock.toNumber(),
-        duration: args.revealStartBlock.toNumber() - v.blockNumber,
-        tokenId: args.tokenId.toString(),
-        tokenAddress: args.collection,
-      }));
+        auctionData = creations.map(({ args, ...v }) => ({
+          id: args.auction,
+          creationTimestamp: v.blockNumber,
+          endTimestamp: args.revealStartBlock.toNumber(),
+          duration: args.revealStartBlock.toNumber() - v.blockNumber,
+          tokenId: args.tokenId.toString(),
+          tokenAddress: args.collection,
+        }));
+      } catch (e) {
+        console.log("Could not get AuctionCreated, defaulting to test data: ", e);
+        auctionData = [
+          {
+            id: "123",
+            creationTimestamp: 100,
+            endTimestamp: 500,
+            duration: 100,
+            tokenId: 1,
+            tokenAddress: "0x3f161961e90eb149f392be1e831bb7060c90f284",
+          },
+        ];
+      }
 
       console.log(auctionData);
-
-      // const auctionData = [
-      //   {
-      //     id: "123",
-      //     creationTimestamp: 100,
-      //     endTimestamp: 500,
-      //     duration: 100,
-      //     tokenId: 1,
-      //     tokenAddress: "0x3f161961e90eb149f392be1e831bb7060c90f284",
-      //   },
-      // ];
 
       const auctions = await Promise.all(
         auctionData.map(async (v) => ({
@@ -114,25 +113,20 @@ export default function Home() {
           : auctions
               .slice()
               .reverse()
-              .map(
-                ({ id, creationTimestamp, endTimestamp, duration, image }) => (
-                  <Link href={"/auction/" + id} key={id}>
-                    <ListItem key={id}>
-                      <img src={image} />
+              .map(({ id, creationTimestamp, endTimestamp, duration, image }) => (
+                <Link href={"/auction/" + id} key={id}>
+                  <ListItem key={id}>
+                    <img src={image} />
 
-                      <div>
-                        <p>Auction duration: {duration} blocks</p>
-                        <p>
-                          Auction ends in:{" "}
-                          {Math.max(endTimestamp - blockNumber, 0)} blocks
-                        </p>
-                        <p>Creation: block #{creationTimestamp}</p>
-                        <p>End: block #{endTimestamp}</p>
-                      </div>
-                    </ListItem>
-                  </Link>
-                )
-              )}
+                    <div>
+                      <p>Auction duration: {duration} blocks</p>
+                      <p>Auction ends in: {Math.max(endTimestamp - blockNumber, 0)} blocks</p>
+                      <p>Creation: block #{creationTimestamp}</p>
+                      <p>End: block #{endTimestamp}</p>
+                    </div>
+                  </ListItem>
+                </Link>
+              ))}
       </Container>
     </div>
   );

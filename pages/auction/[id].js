@@ -1,6 +1,6 @@
 import { AlchemyProvider } from "@ethersproject/providers";
 import { Alchemy, Network } from "alchemy-sdk";
-import { Contract, utils } from "ethers";
+import { constants, Contract, utils } from "ethers";
 import { defaultAbiCoder, keccak256, parseEther } from "ethers/lib/utils";
 import Head from "next/head";
 import prettyMilliseconds from "pretty-ms";
@@ -11,6 +11,7 @@ import { Input } from "../../components/core/Input";
 import auctionFactoryAbi from "../../contracts/auctionFactory.abi.json";
 import auctionAbi from "../../contracts/auction.abi.json";
 import { getNftImage } from "../../utils/getNftImage";
+import { getAccountProofEthers } from "../../utils/mpt_utils";
 
 const Container = styled.div`
   display: grid;
@@ -58,31 +59,18 @@ const BidItem = ({ bidAmount, salt, create2Address, auction }) => {
 
   const { data: signer } = useSigner();
   const { address } = useAccount();
-  const [winningBid, setWinningBid] = useState(false);
   const { data: blockNumber } = useBlockNumber();
 
   const biddingFinished = blockNumber > endTimestamp;
   const revealFinished = blockNumber > revealEndTimestamp;
 
-  useEffect(() => {
-    const updateWinningBid = async () => {
-      const auctionFactory = new Contract(
-        process.env.NEXT_PUBLIC_AUCTION_ADDRESS,
-        auctionFactoryAbi,
-        signer
-      );
-
-      const winningBid = await auctionFactory.winningBid(create2Address);
-      setWinningBid(winningBid);
-    };
-
-    updateWinningBid();
-  }, []);
-
-  const reveal = async () => {
-    const auction = new Contract(id, auctionAbi, signer);
+  const reveal = async (endTimestamp) => {
+    console.log("revealing");
+    const auction = new Contract(constants.AddressZero, auctionAbi, signer);
 
     // await auction.startReveal();
+
+    console.log("revealing");
 
     console.log(
       address,
@@ -96,8 +84,13 @@ const BidItem = ({ bidAmount, salt, create2Address, auction }) => {
       address,
       parseEther(bidAmount),
       salt,
-      parseEther(bidAmount),
-      []
+      parseEther(bidAmount)
+      // accountProof.header,
+      // accountProof.fullAccountProof,
+      // accountProof.state1,
+      // accountProof.state2,
+      // accountProof.state3,
+      // accountProof.accountAddress
     );
 
     await tx.wait();
@@ -106,26 +99,18 @@ const BidItem = ({ bidAmount, salt, create2Address, auction }) => {
   };
 
   const withdraw = async () => {
-    const auctionFactory = new Contract(
-      process.env.NEXT_PUBLIC_AUCTION_ADDRESS,
-      auctionFactoryAbi,
-      signer
-    );
+    const auction = new Contract(id, auctionAbi, signer);
 
-    const tx = await auctionFactory.withdraw();
+    const tx = await auction.pull(address);
     await tx.wait();
 
     alert("Withdrew bid");
   };
 
   const claim = async () => {
-    const auctionFactory = new Contract(
-      process.env.NEXT_PUBLIC_AUCTION_ADDRESS,
-      auctionFactoryAbi,
-      signer
-    );
+    const auction = new Contract(id, auctionAbi, signer);
 
-    const tx = await auctionFactory.claim();
+    const tx = await auction.claimWin(tokenAddress, tokenId);
     await tx.wait();
 
     alert("Claimed NFT");
@@ -134,10 +119,10 @@ const BidItem = ({ bidAmount, salt, create2Address, auction }) => {
   return (
     <BidItemContainer>
       <div>{bidAmount} ETH</div>
-      {winningBid && (
-        <button onClick={() => claim()}>Claim NFT (Winning Bid)</button>
+
+      {biddingFinished && (
+        <button onClick={() => reveal(endTimestamp)}>Reveal</button>
       )}
-      {biddingFinished && <button onClick={() => reveal()}>Reveal</button>}
       {revealFinished && <button onClick={() => withdraw()}>Withdraw</button>}
     </BidItemContainer>
   );
@@ -180,8 +165,14 @@ export default function Auction({ auction }) {
 
     const subsalt = keccak256(Date.now());
     console.log(subsalt);
-    const { salt, depositAddr: create2Address } =
-      await auction.getBidDepositAddr(address, parseEther(bidAmount), subsalt);
+    const {
+      salt,
+      depositAddr: create2Address,
+    } = await auction.getBidDepositAddr(
+      address,
+      parseEther(bidAmount),
+      subsalt
+    );
 
     console.log("create2 Address", create2Address);
 
@@ -210,6 +201,19 @@ export default function Auction({ auction }) {
     await tx.wait();
 
     alert("Claimed highest bid from contract");
+  };
+
+  const finalise = async () => {
+    const auctionContract = new Contract(id, auctionAbi, signer);
+
+    const tx = await auctionContract.claimWin(
+      auction.tokenAddress,
+      auction.tokenId
+    );
+
+    await tx.wait();
+
+    alert("Finalised auction");
   };
 
   return (
@@ -258,6 +262,10 @@ export default function Auction({ auction }) {
               Withdraw Winning bid
             </button>
           )
+        )}
+
+        {revealFinished && (
+          <button onClick={() => finalise()}>Finalise Auction</button>
         )}
 
         <h2>Your bids</h2>

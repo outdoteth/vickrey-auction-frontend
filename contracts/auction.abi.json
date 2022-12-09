@@ -70,6 +70,31 @@
         {
           "indexed": true,
           "internalType": "address",
+          "name": "account",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "sendAmount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "totalPendingAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "AsyncSend",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
           "name": "topBidder",
           "type": "address"
         },
@@ -262,12 +287,37 @@
       "inputs": [
         {
           "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "pendingPulls",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
           "name": "_addr",
           "type": "address"
         }
       ],
       "name": "pull",
-      "outputs": [],
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "totalPull",
+          "type": "uint256"
+        }
+      ],
       "stateMutability": "nonpayable",
       "type": "function"
     },
@@ -292,11 +342,6 @@
           "internalType": "uint256",
           "name": "_balAtSnapshot",
           "type": "uint256"
-        },
-        {
-          "internalType": "bytes",
-          "name": "_proof",
-          "type": "bytes"
         }
       ],
       "name": "reveal",

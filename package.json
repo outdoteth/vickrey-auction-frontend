@@ -9,14 +9,21 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ethereumjs/block": "^4.0.0",
     "alchemy-sdk": "^2.0.3",
+    "dotenv": "^16.0.3",
+    "elliptic": "^6.5.4",
+    "eth-proof": "^2.1.6",
     "ethers": "^5.7.0",
+    "merkle-patricia-tree": "^4.2.4",
     "next": "12.2.5",
     "pretty-ms": "^8.0.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "rlp": "^2.2.6",
     "styled-components": "^5.3.5",
-    "wagmi": "^0.6.4"
+    "wagmi": "^0.6.4",
+    "web3": "^1.8.0"
   },
   "devDependencies": {
     "eslint": "8.22.0",
